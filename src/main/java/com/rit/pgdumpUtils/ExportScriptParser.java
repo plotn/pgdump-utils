@@ -3,6 +3,8 @@ package com.rit.pgdumpUtils;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class ExportScriptParser {
 
@@ -11,6 +13,7 @@ public class ExportScriptParser {
 	private final boolean withPart;
 	private final String inFilePath;
 	private final String inFile;
+	private final String pathToPgFormatter;
 	private	final String outFilePath;
 	private	final String substitutes;
 	private	final String excludes;
@@ -33,13 +36,14 @@ public class ExportScriptParser {
 	static final String event_triggers = "event_triggers";
 
 	public ExportScriptParser(String inFilePath, String inFile, String outFilePath, boolean withPart,
-							  String substitutes, String excludes) {
+							  String substitutes, String excludes, String pathToPgFormatter) {
 		this.inFile = inFile;
 		this.inFilePath = inFilePath;
 		this.outFilePath = outFilePath;
 		this.withPart = withPart;
 		this.substitutes = substitutes;
 		this.excludes = excludes;
+		this.pathToPgFormatter = pathToPgFormatter;
 	}
 
 	private String parseWithSubstitutes(String s) {
@@ -109,6 +113,8 @@ public class ExportScriptParser {
 			FileOutputStream outFile = new FileOutputStream(fileName, append);
 			BufferedWriter writer =	new BufferedWriter(new OutputStreamWriter(outFile, StandardCharsets.UTF_8));
 
+			List<String> objLinesFinal = new ArrayList<>();
+
 			String fullObj = "";
 			for (String s : obj)
 				fullObj += s + ls;
@@ -122,9 +128,23 @@ public class ExportScriptParser {
 			}
 			for (String str : fullObj.split(ls)) {
 				String updStr = parseWithSubstitutes(str);
+				objLinesFinal.add(updStr + System.lineSeparator());
 				writer.write(updStr + System.lineSeparator());
 			}
+
 			writer.close();
+
+			if (!StrUtils.isEmptyStr(pathToPgFormatter)) {
+				outFile = new FileOutputStream(fileName + ".formatted", append);
+				writer = new BufferedWriter(new OutputStreamWriter(outFile, StandardCharsets.UTF_8));
+				System.out.println("formatting object " + fileName);
+				objLinesFinal = PgFormatter.getFormatted(pathToPgFormatter, fileName);
+				for (String str : objLinesFinal) {
+					writer.write(str + System.lineSeparator());
+				}
+				writer.close();
+			}
+
 		} catch (Exception e) {
 			System.out.println(outFilePath + path + "/" +	objName.replace("\"", "")+".sql save failed: " + e.getMessage());
 		}

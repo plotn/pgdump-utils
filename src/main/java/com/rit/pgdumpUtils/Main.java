@@ -10,6 +10,7 @@ public class Main {
         String inFilePath = "";
         boolean withPartitions = false;
         String pathToFile = "";
+        String pathToPgFormatter = "";
         String fileName = "";
         String substitutes = "";
         String excludes = "";
@@ -31,6 +32,7 @@ public class Main {
             System.out.println(" -E{v1,v2,...}: Exclude some commands, supported now:");
             System.out.println("     SEQ_COL_OWN = exclude ALTER SEQUENCE [seq_schema].[seq_name] OWNED BY [schema].[table_name].[column_name]");
             System.out.println("     ALTER_OWN = exclude ALTER ... OWNER TO ...");
+            System.out.println(" -M<path_to_pg_formatter>: path to pgFormatter (optionally) - use pgFormatter if specified");
             return;
         }
         for (String currentArgument: executeArguments) {
@@ -52,6 +54,8 @@ public class Main {
                 if ((!pathToFile.endsWith("/"))&&(!pathToFile.endsWith("\\"))) {
                     pathToFile = pathToFile + "/";
                 }
+            } else if (currentArgument.toUpperCase().startsWith("-M")) {
+                pathToPgFormatter = currentArgument.substring(2);
             } else if (currentArgument.toUpperCase().startsWith("-F")) {
                 fileName = currentArgument.substring(2);
             } else if (currentArgument.toUpperCase().startsWith("-S")) {
@@ -106,7 +110,7 @@ public class Main {
                 file = new File(outFilePath);
             }
 
-            ExportScriptParser parser = new ExportScriptParser(pathToFile, fileName, outFilePath, withPartitions, substitutes, excludes);
+            ExportScriptParser parser = new ExportScriptParser(pathToFile, fileName, outFilePath, withPartitions, substitutes, excludes, pathToPgFormatter);
             parser.parseExportFile();
 
             FileSorter fileSorter = new FileSorter(outFilePath);
