@@ -20,6 +20,7 @@ public class ExportScriptParser {
 	static final String foreign_tables = "foreign_tables";
 	static final String table_data = "table_data";
 	static final String views = "views";
+	static final String mviews = "mviews";
 	static final String types = "types";
 	static final String domains = "domains";
 	static final String functions = "functions";
@@ -164,7 +165,9 @@ public class ExportScriptParser {
 			}
 		}
 		if (line.startsWith("CREATE INDEX ") || line.startsWith("CREATE UNIQUE INDEX ")) return "index";
+		if (line.startsWith("CREATE TRIGGER ")) return "trigger";
 		if (line.startsWith("CREATE VIEW ")) return views;
+		if (line.startsWith("CREATE MATERIALIZED VIEW ")) return mviews;
 		if (line.startsWith("CREATE TYPE ")) return types;
 		if (line.startsWith("CREATE DOMAIN ")) return domains;
 		if (line.startsWith("CREATE FUNCTION ")) return functions;
@@ -203,7 +206,8 @@ public class ExportScriptParser {
 			objT.equals(addtables + "2") ||
 			objT.equals(addforeigntables + "1") ||
 			objT.equals(event_triggers) ||
-			objT.equals(foreign_tables)
+			objT.equals(foreign_tables) ||
+			objT.equals(mviews)
 		) iWordCnt = 3;
 
 		if (
@@ -282,6 +286,12 @@ public class ExportScriptParser {
 				continue;
 			}
 
+			if (objectType.equals("trigger")) {
+				TriggerParsedData triggerParsedData = parseTrigger(line);
+				saveObj(triggerParsedData.getSchema(), triggerParsedData.getObjectName(), addtables + "4", triggerParsedData.getObjectArray());
+				continue;
+			}
+
 			if (!objectType.equals("")) {
 				if (arrObj.size() > 0) {
 					if (!begunObjectType.equals("")) {
@@ -303,6 +313,7 @@ public class ExportScriptParser {
 				objectType.equals(tables) ||
 				objectType.equals(sequences) ||
 				objectType.equals(views) ||
+				objectType.equals(mviews) ||
 				objectType.equals(types) ||
 				objectType.equals(functions) ||
 				objectType.equals(procedures) ||
@@ -370,6 +381,21 @@ public class ExportScriptParser {
 		if (linePart.startsWith("ONLY ")) {
 			linePart = linePart.substring(5);
 		}
+		linePart = linePart.substring(0, linePart.indexOf(' '));
+		String schema = linePart.substring(0, linePart.indexOf('.'));
+		String objectName = linePart.replace(schema + ".", "");
+
+		result.AddObjectLine(line);
+		result.setSchema(schema);
+		result.setObjectName(objectName);
+		return result;
+	}
+
+	private TriggerParsedData parseTrigger(String line) {
+		TriggerParsedData result = new TriggerParsedData();
+
+		String linePart = line.substring(line.indexOf(" ON ") + 4);
+
 		linePart = linePart.substring(0, linePart.indexOf(' '));
 		String schema = linePart.substring(0, linePart.indexOf('.'));
 		String objectName = linePart.replace(schema + ".", "");
